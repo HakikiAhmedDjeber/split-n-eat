@@ -28,6 +28,14 @@ export default function App() {
     setFriends((friendsList) => [...friendsList, friend]);
     addFriendHandler();
   }
+  function editeFriendHandler(friend) {
+    setFriends((friendsList) =>
+      friendsList.map((ele) =>
+        ele.id === selectedFriend.id ? { ...ele, balance: friend.balance } : ele
+      )
+    );
+    setSelectedFriend(null);
+  }
   // add friend form state
   const [isAddFriendOpen, setAddFriendIsOpen] = useState(false);
   function addFriendHandler() {
@@ -44,7 +52,24 @@ export default function App() {
   const [selectedFriend, setSelectedFriend] = useState(null);
   function selectFriendHandler(friend) {
     setSelectedFriend((cur) => (cur?.id === friend.id ? null : friend));
+    billHandler("");
+    paidByUserHandler("");
+    whoIsPayingHandler("you");
   }
+  // bill form states
+  const [bill, setBill] = useState("");
+  function billHandler(value) {
+    setBill(value);
+  }
+  const [paidByUser, setPaidByUser] = useState("");
+  function paidByUserHandler(value) {
+    setPaidByUser(value);
+  }
+  const [whoIsPaying, setWhoIsPaying] = useState("you");
+  function whoIsPayingHandler(value) {
+    setWhoIsPaying(value);
+  }
+
   return (
     <div className="app">
       <div className="sidebar">
@@ -66,7 +91,18 @@ export default function App() {
           {isAddFriendOpen ? "Close" : "Add Friend"}
         </Button>
       </div>
-      {selectedFriend && <FormSplitBill selected={selectedFriend} />}
+      {selectedFriend && (
+        <FormSplitBill
+          selected={selectedFriend}
+          bill={bill}
+          paidByUser={paidByUser}
+          whoIsPaying={whoIsPaying}
+          onbill={billHandler}
+          onPaidByUser={paidByUserHandler}
+          onWhoIsPaying={whoIsPayingHandler}
+          onFriendsEdite={editeFriendHandler}
+        />
+      )}
     </div>
   );
 }
@@ -156,20 +192,25 @@ function AddFriendsForm({ name, image, onImage, onName, onFriendsAdd }) {
     </form>
   );
 }
-function FormSplitBill({ selected }) {
-  const [bill, setBill] = useState("");
-  function billHandler(value) {
-    setBill(value);
+function FormSplitBill({
+  selected,
+  bill,
+  paidByUser,
+  whoIsPaying,
+  onbill,
+  onPaidByUser,
+  onWhoIsPaying,
+  onFriendsEdite,
+}) {
+  const paidByFriend = bill ? bill - paidByUser : "";
+  function splitBillHandler(e) {
+    e.preventDefault();
+    if (!bill || !paidByUser) return;
+    onFriendsEdite({ ...selected, balance: (paidByFriend - paidByUser) / 2 });
+    onbill("");
+    onWhoIsPaying("you");
+    onPaidByUser("");
   }
-  const [paidByUser, setPaidByUser] = useState("");
-  function paidByUserHandler(value) {
-    setPaidByUser(value);
-  }
-  const [whoIsPaying, setWhoIsPaying] = useState("");
-  function whoIsPayingHandler(value) {
-    setWhoIsPaying(value);
-  }
-  const paidByFriend = bill - paidByUser;
   return (
     <form className="form-split-bill">
       <h2>Split a bill with {selected.name}</h2>
@@ -177,25 +218,29 @@ function FormSplitBill({ selected }) {
       <input
         type="text"
         value={bill}
-        onChange={(e) => billHandler(e.target.value)}
+        onChange={(e) => onbill(e.target.value)}
       />
       <label>🧍‍♂️Your expense</label>
       <input
         type="text"
         value={paidByUser}
-        onChange={(e) => paidByUserHandler(e.target.value)}
+        onChange={(e) =>
+          onPaidByUser(
+            Number(e.target.value) > bill ? paidByUser : Number(e.target.value)
+          )
+        }
       />
       <label>👨🏽‍🤝‍👨🏻{selected.name}'s expense</label>
       <input type="text" disabled value={paidByFriend} />
       <label>🤑Who is paying the bill ?</label>
       <select
         value={whoIsPaying}
-        onChange={(e) => whoIsPayingHandler(e.target.value)}
+        onChange={(e) => onWhoIsPaying(e.target.value)}
       >
         <option value="you">You</option>
         <option value="friend">{selected.name}</option>
       </select>
-      <Button>Split bill</Button>
+      <Button onClick={(e) => splitBillHandler(e)}>Split bill</Button>
     </form>
   );
 }
